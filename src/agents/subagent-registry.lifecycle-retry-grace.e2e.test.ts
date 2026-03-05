@@ -218,7 +218,7 @@ describe("subagent registry lifecycle error grace", () => {
     expect(captureCompletionReplySpy).toHaveBeenCalledTimes(1);
   });
 
-  it("caps frozen completion output and clears it after successful announce cleanup", async () => {
+  it("caps frozen completion output and retains it for keep-mode cleanup", async () => {
     registerCompletionRun("run-capped", "capped", "capped result test");
     captureCompletionReplySpy.mockResolvedValueOnce("x".repeat(120 * 1024));
     announceSpy.mockResolvedValueOnce(true);
@@ -232,8 +232,9 @@ describe("subagent registry lifecycle error grace", () => {
     expect(Buffer.byteLength(call?.roundOneReply ?? "", "utf8")).toBeLessThanOrEqual(100 * 1024);
 
     const run = await waitForCleanupCompleted("run-capped");
-    expect(run.frozenResultText).toBeUndefined();
-    expect(run.frozenResultCapturedAt).toBeUndefined();
+    expect(typeof run.frozenResultText).toBe("string");
+    expect(run.frozenResultText).toContain("[truncated: frozen completion output exceeded 100KB");
+    expect(run.frozenResultCapturedAt).toBeTypeOf("number");
   });
 
   it("keeps parallel child completion results frozen even when late traffic arrives", async () => {

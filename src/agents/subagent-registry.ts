@@ -764,7 +764,13 @@ async function finalizeSubagentCleanup(
     if (shouldDeleteAttachments) {
       await safeRemoveAttachmentsDir(entry);
     }
-    clearFrozenRunResult(entry);
+    // Keep-mode runs must retain frozen completion text so ancestor wake/recheck
+    // flows can still synthesize descendant results after child cleanup completes.
+    // Delete-mode runs are removed immediately, so frozen payload retention there
+    // has no behavioral impact.
+    if (cleanup === "delete") {
+      clearFrozenRunResult(entry);
+    }
     completeCleanupBookkeeping({
       runId,
       entry,
